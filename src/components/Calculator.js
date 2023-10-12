@@ -1,40 +1,131 @@
-import Number from "./Number";
-import Operation from "./Operation";
+import { useState, useReducer } from "react";
+
+import "./Calculator.css";
+
+import Button from "./Button";
 import Screen from "./Screen";
 
+const ClearAction = {
+  type: "clear",
+  payload: { label: "clear" },
+};
+
+const EvalAction = {
+  type: "eval",
+  payload: { label: "=" },
+};
+
+const Operations = [
+  { label: "+", func: (a) => (b) => a + b },
+  { label: "-", func: (a) => (b) => a - b },
+  { label: "*", func: (a) => (b) => a * b },
+  { label: "/", func: (a) => (b) => a / b },
+];
+
+const operationToAction = (op) => {
+  return {
+    type: "operation",
+    payload: op,
+  };
+};
+
+const numberToAction = (num) => {
+  return {
+    type: "number",
+    payload: {
+      label: num.toString(),
+      value: num,
+    },
+  };
+};
+
+const DefaultCalculatorState = {
+  history: [],
+  total: 0,
+  total_internal: (a) => a,
+};
+
+const reducer = (state, action) => {
+  const history = [...state.history, action.payload.label];
+
+  switch (action.type) {
+    case "number":
+      return {
+        ...state,
+        history,
+        total: state.total_internal(action.payload.value),
+      };
+    case "operation":
+      return {
+        ...state,
+        history,
+        total_internal: action.payload.func(state.total),
+      };
+    case "clear":
+      return DefaultCalculatorState;
+    case "eval":
+      return {
+        ...state,
+        total_internal: DefaultCalculatorState.total_internal,
+        total: state.total,
+        history: [...history, state.total],
+      };
+    default:
+      throw Error(`Unknown action: ${action.type}`);
+  }
+};
+
 const Calculator = () => {
-  /** TODO: Here is where you are going to keep track of calculator state */
+  const [entry, setEntry] = useState("");
+  const [calculator, dispatchCalculator] = useReducer(reducer, {
+    ...DefaultCalculatorState,
+  });
 
-  /** TODO: what happens when I click a number? */
-  const handleNumberClick = () => {};
+  const enterNumber = (num) => {
+    setEntry((entry) => entry + num);
+  };
 
-  /** TODO: what happens when I click an operation? */
-  const handleOperationClick = () => {};
+  const dispatchWithNumber = (action) => {
+    if (entry !== "") {
+      dispatchCalculator(numberToAction(Number(entry)));
+      setEntry("");
+    }
+
+    dispatchCalculator(action);
+  };
+
+  const clear = () => {
+    dispatchCalculator(ClearAction);
+    setEntry("");
+  };
+
+  const numbers = [...Array.from({ length: 10 }).keys()];
 
   return (
-    <div>
-      <Screen value="123" />
-      <div style={{ display: "flex" }}>
-        <div>
-          <Number value={0} onClick={handleNumberClick} />
-          <Number value={1} onClick={handleNumberClick} />
-          <Number value={2} onClick={handleNumberClick} />
-          <Number value={3} onClick={handleNumberClick} />
-          <Number value={4} onClick={handleNumberClick} />
-          <Number value={5} onClick={handleNumberClick} />
-          <Number value={6} onClick={handleNumberClick} />
-          <Number value={7} onClick={handleNumberClick} />
-          <Number value={8} onClick={handleNumberClick} />
-          <Number value={9} onClick={handleNumberClick} />
-        </div>
-        <div style={{ paddingLeft: 10 }}>
-          <Operation value="+" onClick={handleOperationClick} />
-          <Operation value="/" onClick={handleOperationClick} />
-          <Operation value="x" onClick={handleOperationClick} />
-          <Operation value="-" onClick={handleOperationClick} />
-          <Operation value="=" onClick={handleOperationClick} />
-          <Operation value="clear" onClick={handleOperationClick} />
-        </div>
+    <div className="Calculator">
+      <Screen
+        history={calculator.history}
+        total={calculator.total}
+        entry={entry}
+      />
+      <div className="buttons">
+        {numbers.map((num) => (
+          <Button key={num} onClick={() => enterNumber(num)}>
+            {num}
+          </Button>
+        ))}
+        {Operations.map((op) => (
+          <Button
+            key={op.label}
+            onClick={() => dispatchWithNumber(operationToAction(op))}
+          >
+            {op.label}
+          </Button>
+        ))}
+        <Button onClick={() => clear()}>{ClearAction.payload.label}</Button>
+        <Button onClick={() => dispatchWithNumber(EvalAction)}>
+          {EvalAction.payload.label}
+        </Button>
       </div>
     </div>
   );

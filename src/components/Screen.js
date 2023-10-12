@@ -1,15 +1,29 @@
-const Screen = ({ value }) => {
+import "./Screen.css";
+
+const Screen = ({ history, total, entry }) => {
+  const historySegments = history.reduce((segments, tok) => {
+    // If it is a string, append
+    if (isNaN(tok)) {
+      const lastIdx = segments.length - 1;
+
+      return [...segments.slice(0, lastIdx), [...segments[lastIdx], tok]];
+    }
+
+    // If it is a number, start a new line
+    return [...segments, [tok]];
+  }, []);
   return (
-    <div
-      style={{
-        border: "1px solid black",
-        width: 300,
-        height: 70,
-        textAlign: "right",
-        marginBottom: 10,
-      }}
-    >
-      {value}
+    <div className="Screen">
+      <ul>
+        {historySegments.map((segment, idx) => (
+          <li key={idx}>
+            {segment.map((tok, tokIdx) => (
+              <span key={tokIdx}>{tok}</span>
+            ))}
+          </li>
+        ))}
+        <li>{entry}</li>
+      </ul>
     </div>
   );
 };
